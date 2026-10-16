@@ -1,0 +1,8 @@
+@"
+.env
+.env.*
+!.env.example
+node_modules/
+*.log
+npm-debug.log*
+"@ | Set-Content -Encoding utf8 .gitignore
