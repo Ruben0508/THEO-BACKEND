@@ -34,6 +34,21 @@ router.post(
             nombre, descripcion, precio, categoria, imagen_url
         } = req.body;
 
+        const opciones = req.body.opciones ?? [];
+
+        if (
+            !Array.isArray(opciones) ||
+            !opciones.every(opcion =>
+                typeof opcion === 'string' && opcion.trim()
+            )
+        ) {
+            return res.status(400).json({
+                mensaje: 'Las opciones del producto no son válidas'
+            });
+        }
+
+        const opcionesLimpias = opciones.map(opcion => opcion.trim());
+
         if (
             typeof nombre !== 'string' || !nombre.trim() ||
             typeof categoria !== 'string' || !categoria.trim() ||
@@ -49,15 +64,16 @@ router.post(
         try {
             const resultado = await pool.query(
                 `INSERT INTO productos
-                    (nombre, descripcion, precio, categoria, imagen_url)
-                 VALUES ($1, $2, $3, $4, $5)
-                 RETURNING *`,
+                  (nombre, descripcion, precio, categoria, imagen_url, opciones)
+                   VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+                   RETURNING *`,
                 [
                     nombre.trim(),
                     descripcion || null,
                     Number(precio),
                     categoria.trim(),
-                    imagen_url || null
+                    imagen_url || null,
+                    JSON.stringify(opcionesLimpias)
                 ]
             );
 
@@ -86,6 +102,22 @@ router.put(
             imagen_url, disponible
         } = req.body;
 
+        const opciones = req.body.opciones;
+
+        if (
+            opciones !== undefined &&
+            (
+                !Array.isArray(opciones) ||
+                !opciones.every(opcion =>
+                    typeof opcion === 'string' && opcion.trim()
+                )
+            )
+        ) {
+            return res.status(400).json({
+                mensaje: 'Las opciones del producto no son válidas'
+            });
+        }
+
         if (!/^[1-9]\d*$/.test(id)) {
             return res.status(400).json({
                 mensaje: 'El ID del producto no es válido'
@@ -112,19 +144,23 @@ router.put(
             const resultado = await pool.query(
                 `UPDATE productos
                  SET nombre = COALESCE($1, nombre),
-                     descripcion = COALESCE($2, descripcion),
-                     precio = COALESCE($3, precio),
-                     categoria = COALESCE($4, categoria),
-                     imagen_url = COALESCE($5, imagen_url),
-                     disponible = COALESCE($6, disponible)
-                 WHERE id = $7
-                 RETURNING *`,
+                    descripcion = COALESCE($2, descripcion),
+                    precio = COALESCE($3, precio),
+                    categoria = COALESCE($4, categoria),
+                    imagen_url = COALESCE($5, imagen_url),
+                    opciones = COALESCE($6::jsonb, opciones),
+                    disponible = COALESCE($7, disponible)
+                  WHERE id = $8
+                  RETURNING *`,
                 [
                     nombre === undefined ? null : nombre.trim(),
                     descripcion === undefined ? null : descripcion,
                     precio === undefined ? null : Number(precio),
                     categoria === undefined ? null : categoria.trim(),
                     imagen_url === undefined ? null : imagen_url,
+                    opciones === undefined ? null : JSON.stringify(
+                        opciones.map(opcion => opcion.trim())
+                    ),
                     disponible === undefined ? null : disponible,
                     Number(id)
                 ]
