@@ -11,10 +11,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
     origin: [
         'https://theo-food.netlify.app',
+        'https://theofrontend-bvy1traz4-ruben-4267.vercel.app',
         'http://127.0.0.1:5500',
         'http://localhost:5500'
     ]
 }));
+
 
 app.use(express.json());
 
